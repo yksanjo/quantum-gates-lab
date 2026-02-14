@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Gates Lab - Deep Dive into Quantum Operations</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=IBM+Plex+Sans:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0a0f;
+            --bg-panel: #12121a;
+            --border: #1e1e2e;
+            --primary: #00d4ff;
+            --secondary: #ff00ff;
+            --accent: #00ff88;
+            --text: #e0e0e0;
+            --text-dim: #808090;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', sans-serif;
+            background: var(--bg-deep);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 20%, rgba(0, 212, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(255, 0, 255, 0.03) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(1.5rem, 4vw, 2.2rem);
+            font-weight: 900;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        @media (max-width: 999px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            position: relative;
+        }
+
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary), var(--secondary));
+            opacity: 0.6;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .panel-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-title::before {
+            content: '◆';
+            font-size: 0.6rem;
+        }
+
+        /* Gate Categories */
+        .gate-category {
+            margin-bottom: 25px;
+        }
+
+        .category-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .gate-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+        }
+
+        .gate-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text);
+            min-height: 80px;
+        }
+
+        .gate-btn:hover {
+            border-color: var(--primary);
+            background: rgba(0, 212, 255, 0.1);
+            transform: translateY(-3px);
+        }
+
+        .gate-btn.active {
+            border-color: var(--secondary);
+            background: rgba(255, 0, 255, 0.15);
+            box-shadow: 0 0 20px rgba(255, 0, 255, 0.3);
+        }
+
+        .gate-symbol {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .gate-name {
+            font-size: 0.7rem;
+            color: var(--text-dim);
+            margin-top: 5px;
+        }
+
+        /* Circuit Panel */
+        .circuit-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            overflow-x: auto;
+            gap: 10px;
+        }
+
+        .circuit-gate {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 15px;
+            background: linear-gradient(135deg, var(--primary), #0099cc);
+            border-radius: 8px;
+            color: #000;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            min-width: 50px;
+            animation: gateIn 0.3s ease;
+        }
+
+        @keyframes gateIn {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .circuit-connector {
+            color: var(--text-dim);
+            font-size: 1.5rem;
+        }
+
+        .circuit-state {
+            font-family: 'Fira Code', monospace;
+            color: var(--accent);
+            font-size: 0.9rem;
+            margin-left: auto;
+        }
+
+        /* Math Display */
+        .math-display {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 15px;
+        }
+
+        .math-title {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+        }
+
+        .math-equation {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.1rem;
+            color: var(--text);
+            line-height: 1.8;
+        }
+
+        .ket { color: var(--primary); }
+        .ket-highlight { color: var(--secondary); }
+
+        /* Truth Table */
+        .truth-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.85rem;
+        }
+
+        .truth-table th {
+            background: rgba(0, 212, 255, 0.1);
+            padding: 10px;
+            text-align: center;
+            color: var(--primary);
+            border: 1px solid var(--border);
+        }
+
+        .truth-table td {
+            padding: 10px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .truth-table tr:hover {
+            background: rgba(0, 212, 255, 0.05);
+        }
+
+        /* Description */
+        .gate-description {
+            background: rgba(0, 0, 0, 0.3);
+            border-left: 3px solid var(--primary);
+            padding: 15px;
+            border-radius: 0 10px 10px 0;
+            margin-top: 15px;
+        }
+
+        .gate-desc-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.9rem;
+            color: var(--secondary);
+            margin-bottom: 8px;
+        }
+
+        .gate-desc-text {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+
+        /* Matrix Display */
+        .matrix-display {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin: 15px 0;
+        }
+
+        .matrix {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .matrix-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .matrix-cell {
+            font-family: 'Fira Code', monospace;
+            font-size: 1rem;
+            color: var(--text);
+            width: 40px;
+            text-align: center;
+        }
+
+        .bracket {
+            font-size: 3rem;
+            color: var(--primary);
+            line-height: 1;
+        }
+
+        /* Control Buttons */
+        .control-btns {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            font-family: 'IBM Plex Sans', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), #0099cc);
+            color: #000;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 212, 255, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 68, 68, 0.4);
+        }
+
+        /* Full width panel */
+        .full-panel {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 999px) {
+            .full-panel {
+                grid-column: span 1;
+            }
+        }
+
+        footer {
+            text-align: center;
+            padding: 30px;
+            border-top: 1px solid var(--border);
+            margin-top: 30px;
+            color: var(--text-dim);
+            font-size: 0.85rem;
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>QUANTUM GATES LAB</h1>
+            <p class="subtitle">Deep Dive into Quantum Gate Operations & Mathematics</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Gate Selection Panel -->
+            <div class="panel">
+                <h2 class="panel-title">Quantum Gates</h2>
+                
+                <div class="gate-category">
+                    <div class="category-title">Single-Qubit Gates</div>
+                    <div class="gate-grid">
+                        <button class="gate-btn" data-gate="I">
+                            <span class="gate-symbol">I</span>
+                            <span class="gate-name">Identity</span>
+                        </button>
+                        <button class="gate-btn" data-gate="H">
+                            <span class="gate-symbol">H</span>
+                            <span class="gate-name">Hadamard</span>
+                        </button>
+                        <button class="gate-btn" data-gate="X">
+                            <span class="gate-symbol">X</span>
+                            <span class="gate-name">Pauli-X</span>
+                        </button>
+                        <button class="gate-btn" data-gate="Y">
+                            <span class="gate-symbol">Y</span>
+                            <span class="gate-name">Pauli-Y</span>
+                        </button>
+                        <button class="gate-btn" data-gate="Z">
+                            <span class="gate-symbol">Z</span>
+                            <span class="gate-name">Pauli-Z</span>
+                        </button>
+                        <button class="gate-btn" data-gate="S">
+                            <span class="gate-symbol">S</span>
+                            <span class="gate-name">Phase (S)</span>
+                        </button>
+                        <button class="gate-btn" data-gate="T">
+                            <span class="gate-symbol">T</span>
+                            <span class="gate-name">T Gate</span>
+                        </button>
+                        <button class="gate-btn" data-gate="Rx">
+                            <span class="gate-symbol">Rx</span>
+                            <span class="gate-name">Rotate X</span>
+                        </button>
+                        <button class="gate-btn" data-gate="Ry">
+                            <span class="gate-symbol">Ry</span>
+                            <span class="gate-name">Rotate Y</span>
+                        </button>
+                        <button class="gate-btn" data-gate="Rz">
+                            <span class="gate-symbol">Rz</span>
+                            <span class="gate-name">Rotate Z</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="gate-category">
+                    <div class="category-title">Two-Qubit Gates</div>
+                    <div class="gate-grid">
+                        <button class="gate-btn" data-gate="CNOT">
+                            <span class="gate-symbol">⊕</span>
+                            <span class="gate-name">CNOT</span>
+                        </button>
+                        <button class="gate-btn" data-gate="CZ">
+                            <span class="gate-symbol">CZ</span>
+                            <span class="gate-name">CZ</span>
+                        </button>
+                        <button class="gate-btn" data-gate="SWAP">
+                            <span class="gate-symbol">⇄</span>
+                            <span class="gate-name">SWAP</span>
+                        </button>
+                        <button class="gate-btn" data-gate="iSWAP">
+                            <span class="gate-symbol">iS</span>
+                            <span class="gate-name">iSWAP</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="gate-category">
+                    <div class="category-title">Three-Qubit Gates</div>
+                    <div class="gate-grid">
+                        <button class="gate-btn" data-gate="Toffoli">
+                            <span class="gate-symbol">Tof</span>
+                            <span class="gate-name">Toffoli</span>
+                        </button>
+                        <button class="gate-btn" data-gate="Fredkin">
+                            <span class="gate-symbol">Fred</span>
+                            <span class="gate-name">Fredkin</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-btns">
+                    <button class="btn btn-danger" id="clearBtn">Clear Circuit</button>
+                </div>
+            </div>
+
+            <!-- Circuit & State Panel -->
+            <div class="panel">
+                <h2 class="panel-title">Quantum Circuit</h2>
+                <div class="circuit-container" id="circuit">
+                    <span style="color: var(--text-dim);">|0⟩</span>
+                    <span class="circuit-connector">→</span>
+                    <span class="circuit-state" id="circuitState">Start with |0⟩</span>
+                </div>
+
+                <div class="math-display">
+                    <div class="math-title">CURRENT STATE</div>
+                    <div class="math-equation" id="stateEq">
+                        <span class="ket">|ψ⟩</span> = <span class="ket">|0⟩</span>
+                    </div>
+                </div>
+
+                <div class="gate-description" id="gateDesc">
+                    <div class="gate-desc-title">Select a Gate</div>
+                    <div class="gate-desc-text">Click on any gate above to learn about its operation and see how it affects the quantum state.</div>
+                </div>
+            </div>
+
+            <!-- Matrix Representation -->
+            <div class="panel full-panel">
+                <h2 class="panel-title">Matrix Representation</h2>
+                <div class="matrix-display" id="matrixDisplay">
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1</span>
+                            <span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span>
+                            <span class="matrix-cell">1</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                </div>
+                <div class="math-display">
+                    <div class="math-title">GATE MATRIX</div>
+                    <div class="math-equation" id="matrixEq">
+                        I = [[1, 0], [0, 1]] — Identity Gate (does nothing)
+                    </div>
+                </div>
+            </div>
+
+            <!-- Truth Table -->
+            <div class="panel">
+                <h2 class="panel-title">Truth Table</h2>
+                <table class="truth-table" id="truthTable">
+                    <thead>
+                        <tr>
+                            <th>Input</th>
+                            <th>Output</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>|0⟩</td>
+                            <td>|0⟩</td>
+                        </tr>
+                        <tr>
+                            <td>|1⟩</td>
+                            <td>|1⟩</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Operation Details -->
+            <div class="panel">
+                <h2 class="panel-title">Operation Details</h2>
+                <div class="math-display">
+                    <div class="math-title">CLASSICAL ANALOGY</div>
+                    <div class="math-equation" id="analogy">
+                        The Identity gate is like copying a document — the output is identical to the input.
+                    </div>
+                </div>
+                <div class="math-display" style="margin-top: 15px;">
+                    <div class="math-title">APPLICATION</div>
+                    <div class="math-equation" id="application">
+                        Used to add delay in circuits or as placeholder for empty operations.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Quantum Gates Lab — Part of the Quantum Computing Educational Series</p>
+            <p><a href="https://github.com/yksanjo/quantum-gates-lab">View on GitHub</a></p>
+        </footer>
+    </div>
+
+    <script>
+        // Gate Information Database
+        const gateData = {
+            I: {
+                name: 'Identity Gate',
+                matrix: '[[1, 0], [0, 1]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1</span>
+                            <span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span>
+                            <span class="matrix-cell">1</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'The Identity gate (I) leaves the quantum state unchanged. It\'s the quantum equivalent of "do nothing."',
+                analogy: 'Like copying a document — the output is identical to the input. In classical computing, this is like passing a signal through a wire unchanged.',
+                application: 'Used to add delay in circuits, as placeholder, or to maintain qubit state during idle periods.',
+                truthTable: [
+                    { input: '|0⟩', output: '|0⟩' },
+                    { input: '|1⟩', output: '|1⟩' }
+                ]
+            },
+            H: {
+                name: 'Hadamard Gate',
+                matrix: '[[1/√2, 1/√2], [1/√2, -1/√2]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1/√2</span>
+                            <span class="matrix-cell">1/√2</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1/√2</span>
+                            <span class="matrix-cell">-1/√2</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'The Hadamard gate creates superposition! It transforms a definite state (|0⟩ or |1⟩) into an equal superposition of both.',
+                analogy: 'Like tossing a coin that spins in the air — it\'s neither heads nor tails until it lands (measures).',
+                application: 'The most important gate for quantum algorithms! Used to create superposition in Shor\'s algorithm, Grover\'s search, and many others.',
+                truthTable: [
+                    { input: '|0⟩', output: '(|0⟩ + |1⟩)/√2' },
+                    { input: '|1⟩', output: '(|0⟩ - |1⟩)/√2' }
+                ]
+            },
+            X: {
+                name: 'Pauli-X Gate (NOT)',
+                matrix: '[[0, 1], [1, 0]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span>
+                            <span class="matrix-cell">1</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1</span>
+                            <span class="matrix-cell">0</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'The Pauli-X gate is the quantum version of a classical NOT gate. It flips |0⟩ to |1⟩ and vice versa.',
+                analogy: 'Like flipping a coin from heads to tails. In terms of Bloch sphere, it rotates 180° around the X-axis.',
+                application: 'Used for bit-flipping operations, implementing classical NOT logic, and as building block for more complex circuits.',
+                truthTable: [
+                    { input: '|0⟩', output: '|1⟩' },
+                    { input: '|1⟩', output: '|0⟩' }
+                ]
+            },
+            Y: {
+                name: 'Pauli-Y Gate',
+                matrix: '[[0, -i], [i, 0]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span>
+                            <span class="matrix-cell">-i</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">i</span>
+                            <span class="matrix-cell">0</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'The Pauli-Y gate flips the state and applies a phase change. It\'s a combination of X and Z gates.',
+                analogy: 'Like flipping a coin and also changing its phase — more complex than simple bit flip.',
+                application: 'Used in quantum error correction and as building block for more complex operations.',
+                truthTable: [
+                    { input: '|0⟩', output: 'i|1⟩' },
+                    { input: '|1⟩', output: '-i|0⟩' }
+                ]
+            },
+            Z: {
+                name: 'Pauli-Z Gate',
+                matrix: '[[1, 0], [0, -1]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1</span>
+                            <span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span>
+                            <span class="matrix-cell">-1</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'The Pauli-Z gate applies a phase flip. It leaves |0⟩ unchanged but multiplies |1⟩ by -1.',
+                analogy: 'Like changing the spin direction without changing the probability — affects the "phase" of the quantum state.',
+                application: 'Used in phase-flip operations, quantum error correction, and implementing phase oracle in algorithms.',
+                truthTable: [
+                    { input: '|0⟩', output: '|0⟩' },
+                    { input: '|1⟩', output: '-|1⟩' }
+                ]
+            },
+            S: {
+                name: 'S Gate (Phase)',
+                matrix: '[[1, 0], [0, i]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1</span>
+                            <span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span>
+                            <span class="matrix-cell">i</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'The S gate (Phase gate) applies a 90° phase rotation. It\'s the square root of the Z gate.',
+                analogy: 'Like rotating the phase of a wave by 90 degrees — affects the "phase" but not the magnitude.',
+                application: 'Used in phase manipulation and creating relative phase differences in quantum algorithms.',
+                truthTable: [
+                    { input: '|0⟩', output: '|0⟩' },
+                    { input: '|1⟩', output: 'i|1⟩' }
+                ]
+            },
+            T: {
+                name: 'T Gate',
+                matrix: '[[1, 0], [0, e^(iπ/4)]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1</span>
+                            <span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span>
+                            <span class="matrix-cell">e<sup>iπ/4</sup></span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'The T gate applies a 45° phase rotation. It\'s essential for universal quantum computing.',
+                analogy: 'Like fine-tuning the phase by 45 degrees — allows for more precise quantum operations.',
+                application: 'Critical for fault-tolerant quantum computing. Used in quantum Fourier transform and error correction.',
+                truthTable: [
+                    { input: '|0⟩', output: '|0⟩' },
+                    { input: '|1⟩', output: 'e<sup>iπ/4</sup>|1⟩' }
+                ]
+            },
+            Rx: {
+                name: 'Rotation X Gate',
+                matrix: '[[cos(θ/2), -i sin(θ/2)], [-i sin(θ/2), cos(θ/2)]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">cos(θ/2)</span>
+                            <span class="matrix-cell">-i sin(θ/2)</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">-i sin(θ/2)</span>
+                            <span class="matrix-cell">cos(θ/2)</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'Rx gate rotates the qubit around the X-axis of the Bloch sphere by angle θ.',
+                analogy: 'Like rotating a compass needle around its X-axis — changes the direction of the magnetic moment.',
+                application: 'Used for arbitrary rotations around X-axis, implementing arbitrary single-qubit operations.',
+                truthTable: [
+                    { input: '|0⟩', output: 'cos(θ/2)|0⟩ - i sin(θ/2)|1⟩' },
+                    { input: '|1⟩', output: '-i sin(θ/2)|0⟩ + cos(θ/2)|1⟩' }
+                ]
+            },
+            Ry: {
+                name: 'Rotation Y Gate',
+                matrix: '[[cos(θ/2), sin(θ/2)], [-sin(θ/2), cos(θ/2)]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">cos(θ/2)</span>
+                            <span class="matrix-cell">sin(θ/2)</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">-sin(θ/2)</span>
+                            <span class="matrix-cell">cos(θ/2)</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'Ry gate rotates the qubit around the Y-axis of the Bloch sphere by angle θ.',
+                analogy: 'Like rotating a spinning top around its vertical axis — changes tilt without changing spin.',
+                application: 'Used for arbitrary rotations around Y-axis, creating superposition from |0⟩.',
+                truthTable: [
+                    { input: '|0⟩', output: 'cos(θ/2)|0⟩ + sin(θ/2)|1⟩' },
+                    { input: '|1⟩', output: '-sin(θ/2)|0⟩ + cos(θ/2)|1⟩' }
+                ]
+            },
+            Rz: {
+                name: 'Rotation Z Gate',
+                matrix: '[[e^(-iθ/2), 0], [0, e^(iθ/2)]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">e<sup>-iθ/2</sup></span>
+                            <span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span>
+                            <span class="matrix-cell">e<sup>iθ/2</sup></span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'Rz gate rotates the qubit around the Z-axis of the Bloch sphere by angle θ (phase rotation).',
+                analogy: 'Like changing the phase of a wave — the probability stays the same but the phase changes.',
+                application: 'Used for arbitrary phase rotations, implementing phase shifts in quantum algorithms.',
+                truthTable: [
+                    { input: '|0⟩', output: 'e<sup>-iθ/2</sup>|0⟩' },
+                    { input: '|1⟩', output: 'e<sup>iθ/2</sup>|1⟩' }
+                ]
+            },
+            CNOT: {
+                name: 'Controlled-NOT Gate',
+                matrix: '[[1,0,0,0], [0,1,0,0], [0,0,0,1], [0,0,1,0]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">1</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">1</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">1</span><span class="matrix-cell">0</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'CNOT is a 2-qubit gate. If the control qubit is |1⟩, it flips the target qubit. Creates entanglement!',
+                analogy: 'Like a conditional instruction: "If the first coin is heads, flip the second coin." Creates quantum correlation!',
+                application: 'Essential for quantum entanglement, quantum teleportation, and most quantum algorithms.',
+                truthTable: [
+                    { input: '|00⟩', output: '|00⟩' },
+                    { input: '|01⟩', output: '|01⟩' },
+                    { input: '|10⟩', output: '|11⟩' },
+                    { input: '|11⟩', output: '|10⟩' }
+                ]
+            },
+            CZ: {
+                name: 'Controlled-Z Gate',
+                matrix: '[[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,-1]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">1</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">1</span><span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">-1</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'CZ is a 2-qubit gate that applies Z-gate only when both qubits are |1⟩. Symmetric entanglement!',
+                analogy: 'Like marking the phase of two correlated particles — affects them together.',
+                application: 'Used for creating entangled states and in quantum error correction codes.',
+                truthTable: [
+                    { input: '|00⟩', output: '|00⟩' },
+                    { input: '|01⟩', output: '|01⟩' },
+                    { input: '|10⟩', output: '|10⟩' },
+                    { input: '|11⟩', output: '-|11⟩' }
+                ]
+            },
+            SWAP: {
+                name: 'SWAP Gate',
+                matrix: '[[1,0,0,0], [0,0,1,0], [0,1,0,0], [0,0,0,1]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">1</span><span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">1</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">1</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'SWAP gate exchanges the states of two qubits.',
+                analogy: 'Like swapping two seats in a row — the quantum information moves to a different location.',
+                application: 'Used for qubit routing in quantum processors and moving quantum information.',
+                truthTable: [
+                    { input: '|00⟩', output: '|00⟩' },
+                    { input: '|01⟩', output: '|10⟩' },
+                    { input: '|10⟩', output: '|01⟩' },
+                    { input: '|11⟩', output: '|11⟩' }
+                ]
+            },
+            iSWAP: {
+                name: 'iSWAP Gate',
+                matrix: '[[1,0,0,0], [0,i,0,0], [0,0,i,0], [0,0,0,1]]',
+                matrixDisplay: `
+                    <span class="bracket">[</span>
+                    <div class="matrix">
+                        <div class="matrix-row">
+                            <span class="matrix-cell">1</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">i</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">i</span><span class="matrix-cell">0</span>
+                        </div>
+                        <div class="matrix-row">
+                            <span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">0</span><span class="matrix-cell">1</span>
+                        </div>
+                    </div>
+                    <span class="bracket">]</span>
+                `,
+                description: 'iSWAP is a SWAP gate with additional phase factors. Creates entanglement with phase.',
+                analogy: 'Like swapping two coins while adding a quantum phase twist to the swap.',
+                application: 'Used in entangling gates and quantum optimization algorithms.',
+                truthTable: [
+                    { input: '|00⟩', output: '|00⟩' },
+                    { input: '|01⟩', output: 'i|10⟩' },
+                    { input: '|10⟩', output: 'i|01⟩' },
+                    { input: '|11⟩', output: '|11⟩' }
+                ]
+            },
+            Toffoli: {
+                name: 'Toffoli Gate (CCNOT)',
+                matrix: '8x8 matrix',
+                description: 'Toffoli is a 3-qubit gate (CCNOT). It flips the target only if both control qubits are |1⟩. Universal for classical computing!',
+                analogy: 'Like a double check: "If coin A AND coin B are heads, flip coin C." Universal for reversible computing.',
+                application: 'Essential for building quantum arithmetic, quantum error correction, and implementing classical logic.',
+                truthTable: [
+                    { input: '|000⟩', output: '|000⟩' },
+                    { input: '|001⟩', output: '|001⟩' },
+                    { input: '|010⟩', output: '|010⟩' },
+                    { input: '|011⟩', output: '|011⟩' },
+                    { input: '|100⟩', output: '|100⟩' },
+                    { input: '|101⟩', output: '|101⟩' },
+                    { input: '|110⟩', output: '|111⟩' },
+                    { input: '|111⟩', output: '|110⟩' }
+                ]
+            },
+            Fredkin: {
+                name: 'Fredkin Gate (CSWAP)',
+                description: 'Fredkin is a 3-qubit gate (CSWAP). It swaps two qubits if the control qubit is |1⟩.',
+                analogy: 'Like a conditional swap: "If the first coin is heads, swap the other two coins."',
+                application: 'Used in quantum networking, reversible computing, and quantum simulations.',
+                truthTable: [
+                    { input: '|000⟩', output: '|000⟩' },
+                    { input: '|001⟩', output: '|001⟩' },
+                    { input: '|010⟩', output: '|010⟩' },
+                    { input: '|011⟩', output: '|011⟩' },
+                    { input: '|100⟩', output: '|100⟩' },
+                    { input: '|101⟩', output: '|110⟩' },
+                    { input: '|110⟩', output: '|101⟩' },
+                    { input: '|111⟩', output: '|111⟩' }
+                ]
+            }
+        };
+
+        // Circuit state
+        let circuit = [];
+
+        // DOM Elements
+        const gateButtons = document.querySelectorAll('.gate-btn');
+        const circuitEl = document.getElementById('circuit');
+        const circuitStateEl = document.getElementById('circuitState');
+        const stateEqEl = document.getElementById('stateEq');
+        const gateDescEl = document.getElementById('gateDesc');
+        const matrixDisplayEl = document.getElementById('matrixDisplay');
+        const matrixEqEl = document.getElementById('matrixEq');
+        const truthTableEl = document.getElementById('truthTable').querySelector('tbody');
+        const analogyEl = document.getElementById('analogy');
+        const applicationEl = document.getElementById('application');
+        const clearBtn = document.getElementById('clearBtn');
+
+        // Add click handlers
+        gateButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const gate = btn.dataset.gate;
+                selectGate(gate);
+                
+                // Add to circuit
+                addToCircuit(gate);
+            });
+        });
+
+        clearBtn.addEventListener('click', () => {
+            circuit = [];
+            updateCircuitDisplay();
+            selectGate('I');
+        });
+
+        function selectGate(gate) {
+            const data = gateData[gate];
+            
+            // Update active button
+            gateButtons.forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-gate="${gate}"]`)?.classList.add('active');
+            
+            // Update matrix display
+            matrixDisplayEl.innerHTML = data.matrixDisplay;
+            matrixEqEl.innerHTML = `${gate} = ${data.matrix} ${data.name.includes('Gate') ? '' : '— ' + data.name}`;
+            
+            // Update description
+            gateDescEl.innerHTML = `
+                <div class="gate-desc-title">${data.name}</div>
+                <div class="gate-desc-text">${data.description}</div>
+            `;
+            
+            // Update analogy
+            analogyEl.textContent = data.analogy;
+            applicationEl.textContent = data.application;
+            
+            // Update truth table
+            truthTableEl.innerHTML = data.truthTable.map(row => 
+                `<tr><td>${row.input}</td><td>${row.output}</td></tr>`
+            ).join('');
+        }
+
+        function addToCircuit(gate) {
+            circuit.push(gate);
+            updateCircuitDisplay();
+        }
+
+        function updateCircuitDisplay() {
+            if (circuit.length === 0) {
+                circuitEl.innerHTML = `
+                    <span style="color: var(--text-dim);">|0⟩</span>
+                    <span class="circuit-connector">→</span>
+                    <span class="circuit-state">Start with |0⟩</span>
+                `;
+                stateEqEl.innerHTML = '<span class="ket">|ψ⟩</span> = <span class="ket">|0⟩</span>';
+                return;
+            }
+            
+            let html = '<span style="color: var(--text-dim);">|0⟩</span>';
+            circuit.forEach((gate, i) => {
+                html += `<span class="circuit-connector">→</span>`;
+                html += `<div class="circuit-gate">${gate}</div>`;
+            });
+            html += `<span class="circuit-connector">→</span>`;
+            html += `<span class="circuit-state">${getStateDescription()}</span>`;
+            
+            circuitEl.innerHTML = html;
+        }
+
+        function getStateDescription() {
+            if (circuit.length === 0) return '|0⟩';
+            
+            const lastGate = circuit[circuit.length - 1];
+            const gates = [...new Set(circuit)];
+            
+            if (gates.length === 1) {
+                const gate = gates[0];
+                if (gate === 'I') return '|0⟩';
+                if (gate === 'X') return '|1⟩';
+                if (gate === 'H') return '(|0⟩ + |1⟩)/√2';
+                if (gate === 'Z') return '|0⟩ (phase -1 on |1⟩)';
+                if (gate === 'CNOT') return 'Requires 2nd qubit';
+            }
+            
+            return `${circuit.join('-')}`;
+        }
+
+        // Initialize with Identity gate
+        selectGate('I');
+    </script>
+</body>
+</html>
